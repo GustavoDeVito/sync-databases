@@ -18,7 +18,9 @@ export class StocksService {
   ) {}
 
   async findOneByProduct(id: number) {
-    const stock = await this.prismaService.stock.findUnique({ where: { productId: id } });
+    const stock = await this.prismaService.stock.findUnique({
+      where: { productId: id },
+    });
 
     if (!stock) {
       throw new NotFoundException(
@@ -36,20 +38,18 @@ export class StocksService {
   async upsert(upsertStockDto: UpsertStockDto) {
     const { id, name, status } = upsertStockDto;
 
-    const exist = await this.prismaService.stock.findUnique({
+    await this.prismaService.stock.upsert({
+      create: {
+        productId: id,
+        name,
+        status,
+      },
+      update: {
+        name,
+        status,
+      },
       where: { productId: id },
     });
-
-    if (exist) {
-      return this.prismaService.stock.update({
-        where: { productId: id },
-        data: { name, status },
-      });
-    } else {
-      return this.prismaService.stock.create({
-        data: { productId: id, name, status },
-      });
-    }
   }
 
   emit(product: Pick<StockEntity, 'productId' | 'quantity'>) {

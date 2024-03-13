@@ -19,6 +19,7 @@ export class OrdersService {
     return this.prismaService.order.findMany({
       select: {
         id: true,
+        action: true,
         stock: { select: { id: true, name: true } },
         quantity: true,
         createdAt: true,
