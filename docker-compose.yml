@@ -1,0 +1,99 @@
+version: '3'
+
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper
+    networks:
+      - broker
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - ./database/zookeeper:/data
+
+  kafka:
+    image: wurstmeister/kafka
+    ports:
+      - "9092:9092"
+    networks:
+      - broker
+    environment:
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_NAME_PLAINTEXT: PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./database/kafka:/data
+    depends_on:
+      - zookeeper
+
+  db.product:
+    image: postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: product
+    networks:
+      - product
+    volumes:
+      - ./database/product/:/var/lib/postgresql/data
+
+  api.product:
+    build:
+      context: ./product
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    networks:
+      - broker
+      - product
+    depends_on:
+      - db.product
+      - kafka
+    environment:
+      DATABASE_URL: postgres://admin:admin@db.product:5432/product
+      BROKER_URL: kafka:29092
+
+  db.order:
+    image: postgres
+    restart: always
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: order
+    networks:
+      - order
+    volumes:
+      - ./database/order/:/var/lib/postgresql/data
+
+  api.order:
+    build:
+      context: ./order
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    networks:
+      - broker
+      - order
+    depends_on:
+      - db.order
+      - kafka
+    environment:
+      DATABASE_URL: postgres://admin:admin@db.order:5432/order
+      BROKER_URL: kafka:29092
+
+networks:
+  broker:
+    driver: bridge
+  product:
+    driver: bridge
+  order:
+    driver: bridge

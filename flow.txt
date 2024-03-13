@@ -1,0 +1,18 @@
+# Product #
+- id
+- name
+- quantity
+- status
+
+# Order #
+- id
+- stockId
+- action = 'input' | 'output'
+- quantity
+
+## Stock = Product ##
+- id
+- productId
+- name
+- quantity
+- status

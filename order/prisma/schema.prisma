@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Order {
+  id        Int        @id @default(autoincrement())
+  stock     Stock      @relation(fields: [stockId], references: [id])
+  stockId   Int
+  action    ActionEnum
+  quantity  Int
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("orders")
+}
+
+model Stock {
+  id        Int      @id @default(autoincrement())
+  productId Int      @unique
+  name      String
+  quantity  Int      @default(0)
+  status    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Order     Order[]
+
+  @@map("stocks")
+}
+
+enum ActionEnum {
+  INPUT
+  OUTPUT
+}
